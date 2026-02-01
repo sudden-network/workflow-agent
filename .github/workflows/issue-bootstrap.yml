@@ -182,7 +182,7 @@ jobs:
           fi
 
           if [ -n "$COMMENT_BODY" ]; then
-            printf '%s' "$(cat "$prompt_file")" | codex exec "${codex_args[@]}" resume 2>&1 | tee /tmp/codex_output.txt
+            printf '%s' "$(cat "$prompt_file")" | codex exec "${codex_args[@]}" resume --last 2>&1 | tee /tmp/codex_output.txt
           else
             codex exec "${codex_args[@]}" "$(cat "$prompt_file")" 2>&1 | tee /tmp/codex_output.txt
           fi
