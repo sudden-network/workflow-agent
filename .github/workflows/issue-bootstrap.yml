@@ -35,9 +35,6 @@ jobs:
         with:
           node-version: "20"
 
-      - name: Install Codex CLI
-        run: npm install -g @openai/codex
-
       - name: Run Codex
         id: codex
         env:
@@ -50,7 +47,7 @@ jobs:
         run: |
           set -euo pipefail
 
-          codex login --with-api-key "$OPENAI_API_KEY"
+          npx -y @openai/codex login --with-api-key "$OPENAI_API_KEY"
 
           session_dir="$HOME/.codex/sessions"
           mkdir -p "$session_dir"
@@ -85,9 +82,9 @@ jobs:
           else
             set +e
             if [ -n "$session_id" ]; then
-              codex exec resume "$session_id" "$(cat "$prompt_file")" | tee /tmp/codex_output.txt
+              npx -y @openai/codex exec resume "$session_id" "$(cat "$prompt_file")" | tee /tmp/codex_output.txt
             else
-              codex exec "$(cat "$prompt_file")" | tee /tmp/codex_output.txt
+              npx -y @openai/codex exec "$(cat "$prompt_file")" | tee /tmp/codex_output.txt
             fi
             codex_exit=${PIPESTATUS[0]}
             set -e
