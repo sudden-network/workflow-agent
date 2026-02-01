@@ -174,7 +174,7 @@ jobs:
           if [ -n "$COMMENT_BODY" ]; then
             printf '%s\n' "$COMMENT_BODY" > "$prompt_file"
           else
-            if ! PROMPT_FILE="$prompt_file" python -c $'import os\nfrom pathlib import Path\n\noutput_path=Path(os.environ[\"PROMPT_FILE\"])\n\ntemplate = \"\"\"# Codex Worker: Issue Bootstrap\\n\\nYou are running inside a GitHub Actions workflow triggered by a new issue.\\n\\nContext:\\n- The repository for the issue is already checked out in the workspace.\\n- Your response will be posted as a comment on the issue.\\n\\nInstructions:\\n- Read the issue title and description below.\\n- Answer in Markdown.\\n- Be concise and actionable.\\n\\nIssue title:\\n{{ISSUE_TITLE}}\\n\\nIssue description:\\n{{ISSUE_BODY}}\\n\"\"\"\n\nreplacements={\n    \"{{ISSUE_TITLE}}\": os.environ.get(\"ISSUE_TITLE\", \"\"),\n    \"{{ISSUE_BODY}}\": os.environ.get(\"ISSUE_BODY\", \"\"),\n}\nfor key, value in replacements.items():\n    template = template.replace(key, value)\n\noutput_path.write_text(template, encoding=\"utf-8\")\n'; then
+            if ! PROMPT_FILE="$prompt_file" python -c $'import os\nfrom pathlib import Path\n\noutput_path=Path(os.environ[\"PROMPT_FILE\"])\n\ntemplate = \"\"\"# Codex Worker: Issue Bootstrap\\n\\nYou are running inside a GitHub Actions workflow triggered by a new issue.\\n\\nContext:\\n- The repository for the issue is already checked out in the workspace.\\n- Your response will be posted as a comment on the issue.\\n- The comment will be rendered as GitHub-flavored Markdown.\\n\\nInstructions:\\n- Read the issue title and description below.\\n- Answer in Markdown.\\n- Be concise and actionable.\\n- If you need literal backticks inline, escape them (e.g., \\\\\\`\\\\\\`\\\\\\`).\\n- Put code snippets in fenced code blocks on their own lines.\\n\\nIssue title:\\n{{ISSUE_TITLE}}\\n\\nIssue description:\\n{{ISSUE_BODY}}\\n\"\"\"\n\nreplacements={\n    \"{{ISSUE_TITLE}}\": os.environ.get(\"ISSUE_TITLE\", \"\"),\n    \"{{ISSUE_BODY}}\": os.environ.get(\"ISSUE_BODY\", \"\"),\n}\nfor key, value in replacements.items():\n    template = template.replace(key, value)\n\noutput_path.write_text(template, encoding=\"utf-8\")\n'; then
               echo "Failed to build issue prompt." > /tmp/codex_output.txt
               echo "codex_exit=1" >> "$GITHUB_OUTPUT"
               echo "prompt_ready=false" >> "$GITHUB_OUTPUT"
@@ -261,21 +261,6 @@ jobs:
             cp "$output_file" "$response_file"
           fi
 
-      - name: Escape inline fences
-        if: ${{ steps.codex.outcome == 'success' }}
-        shell: bash
-        run: |
-          set -euo pipefail
-
-          input_file=/tmp/codex_response.txt
-          output_file=/tmp/codex_response_sanitized.txt
-
-          if [ ! -f "$input_file" ]; then
-            exit 0
-          fi
-
-          python -c $'from pathlib import Path\n\ninput_path=Path(\"/tmp/codex_response.txt\")\noutput_path=Path(\"/tmp/codex_response_sanitized.txt\")\ntext=input_path.read_text(encoding=\"utf-8\")\nlines=text.splitlines(keepends=True)\nresult=[]\nin_fence=False\nfor line in lines:\n    stripped=line.lstrip()\n    if stripped.startswith(\"```\"):\n        in_fence=not in_fence\n        result.append(line)\n        continue\n    if in_fence:\n        result.append(line)\n    else:\n        result.append(line.replace(\"```\", \"\\\\`\\\\`\\\\`\"))\noutput_path.write_text(\"\".join(result), encoding=\"utf-8\")\n'
-
       - name: Strip Codex auth
         if: ${{ steps.codex.outcome == 'success' }}
         shell: bash
@@ -328,9 +313,7 @@ jobs:
                   echo "(no output)"
                 fi
               else
-                if [ -f /tmp/codex_response_sanitized.txt ]; then
-                  cat /tmp/codex_response_sanitized.txt
-                elif [ -f /tmp/codex_response.txt ]; then
+                if [ -f /tmp/codex_response.txt ]; then
                   cat /tmp/codex_response.txt
                 elif [ -f /tmp/codex_output.txt ]; then
                   cat /tmp/codex_output.txt
