@@ -54,7 +54,7 @@ jobs:
           set -euo pipefail
 
           session_id=$(gh api "repos/${{ github.repository }}/issues/${{ inputs.issue_number }}/comments" --paginate \
-            --jq '[.[] | .body | capture("<!-- codex-worker-session-id: (?<id>[0-9a-fA-F-]{36}) -->")?.id] | last')
+            --jq '[.[] | select(.user.login == "github-actions[bot]") | .body | capture("<!-- codex-worker-session-id: (?<id>[0-9a-fA-F-]{36}) -->")?.id] | last')
           if [ "$session_id" = "null" ]; then
             session_id=""
           fi
