@@ -87,7 +87,6 @@ jobs:
         uses: actions/download-artifact@v4
         continue-on-error: true
         with:
-          name: codex-worker-session-${{ inputs.issue_number }}
           artifact-ids: ${{ steps.find_artifact.outputs.artifact_id }}
           github-token: ${{ github.token }}
           repository: ${{ github.repository }}
