@@ -268,6 +268,13 @@ jobs:
           set -euo pipefail
           rm -f "$CODEX_STATE_DIR/auth.json"
 
+      - name: Prune Codex temp
+        if: ${{ steps.codex.outcome == 'success' }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -rf "$CODEX_STATE_DIR/tmp" "$CODEX_STATE_DIR/TMP"
+
       - name: Upload session artifact
         if: ${{ steps.codex.outcome == 'success' }}
         uses: actions/upload-artifact@v4
