@@ -61,25 +61,25 @@ jobs:
           set -euo pipefail
 
           missing_session=true
-          artifact_run_id=""
+          artifact_id=""
 
-          if ! artifact_run_id=$(gh api "repos/${{ github.repository }}/actions/artifacts?per_page=100" \
-            --jq '[.artifacts[] | select(.name=="codex-worker-session-${{ inputs.issue_number }}") | select(.expired==false)] | sort_by(.created_at) | last | .run_id'); then
+          if ! artifact_id=$(gh api "repos/${{ github.repository }}/actions/artifacts?per_page=100" \
+            --jq '[.artifacts[] | select(.name=="codex-worker-session-${{ inputs.issue_number }}") | select(.expired==false)] | sort_by(.created_at) | last | .id'); then
             echo "missing_session=true" >> "$GITHUB_OUTPUT"
-            echo "run_id=" >> "$GITHUB_OUTPUT"
+            echo "artifact_id=" >> "$GITHUB_OUTPUT"
             echo "Failed to list artifacts; cannot resume. Ensure actions: read permission." > /tmp/codex_output.txt
             echo "codex_exit=1" >> "$GITHUB_OUTPUT"
             exit 0
           fi
 
-          if [ "$artifact_run_id" = "null" ] || [ -z "$artifact_run_id" ]; then
+          if [ "$artifact_id" = "null" ] || [ -z "$artifact_id" ]; then
             echo "missing_session=true" >> "$GITHUB_OUTPUT"
-            echo "run_id=" >> "$GITHUB_OUTPUT"
+            echo "artifact_id=" >> "$GITHUB_OUTPUT"
             exit 0
           fi
 
           echo "missing_session=false" >> "$GITHUB_OUTPUT"
-          echo "run_id=$artifact_run_id" >> "$GITHUB_OUTPUT"
+          echo "artifact_id=$artifact_id" >> "$GITHUB_OUTPUT"
 
       - name: Download session artifact
         id: download_session
@@ -88,7 +88,8 @@ jobs:
         continue-on-error: true
         with:
           name: codex-worker-session-${{ inputs.issue_number }}
-          run-id: ${{ steps.find_artifact.outputs.run_id }}
+          artifact-ids: ${{ steps.find_artifact.outputs.artifact_id }}
+          github-token: ${{ github.token }}
           repository: ${{ github.repository }}
           path: ${{ runner.temp }}/codex-session
 
