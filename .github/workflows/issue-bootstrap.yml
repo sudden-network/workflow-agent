@@ -223,6 +223,31 @@ jobs:
 
           echo "codex_exit=$codex_exit" >> "$GITHUB_OUTPUT"
 
+      - name: Extract Codex response
+        if: ${{ steps.codex.outcome == 'success' }}
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          output_file=/tmp/codex_output.txt
+          response_file=/tmp/codex_response.txt
+
+          if [ ! -f "$output_file" ]; then
+            echo "" > "$response_file"
+            exit 0
+          fi
+
+          awk '
+            /^codex$/ {capture=1; buf=""; next}
+            /^tokens used/ {capture=0; next}
+            capture {buf = buf $0 ORS}
+            END {printf "%s", buf}
+          ' "$output_file" > "$response_file"
+
+          if [ ! -s "$response_file" ]; then
+            cp "$output_file" "$response_file"
+          fi
+
       - name: Strip Codex auth
         if: ${{ steps.codex.outcome == 'success' }}
         shell: bash
@@ -246,32 +271,21 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           ISSUE_NUMBER: ${{ inputs.issue_number }}
-          FIND_CODEX_EXIT: ${{ steps.find_artifact.outputs.codex_exit }}
-          LOGIN_CODEX_EXIT: ${{ steps.login.outputs.codex_exit }}
-          CODEX_EXIT: ${{ steps.restore.outputs.codex_exit }}
-          CODEX_CODEX_EXIT: ${{ steps.codex.outputs.codex_exit }}
         shell: bash
         run: |
           set -euo pipefail
 
-          codex_exit="${CODEX_EXIT:-${FIND_CODEX_EXIT:-${LOGIN_CODEX_EXIT:-$CODEX_CODEX_EXIT}}}"
-
-          status="success"
-          if [ -n "$codex_exit" ] && [ "$codex_exit" -ne 0 ]; then
-            status="failed (exit $codex_exit)"
-          fi
-
-          response_file=/tmp/codex_output.txt
-          if [ ! -f "$response_file" ]; then
-            echo "(no output)" > "$response_file"
-          fi
-
-          comment_body_file=$(mktemp)
-          echo "**Codex Worker** response ($status)" >> "$comment_body_file"
-          echo >> "$comment_body_file"
-          cat "$response_file" >> "$comment_body_file"
-
           gh api \
             --method POST \
             "repos/${{ github.repository }}/issues/$ISSUE_NUMBER/comments" \
-            -f body="$(cat "$comment_body_file")"
+            -f body="$(
+              response_file=/tmp/codex_response.txt
+              if [ ! -f "$response_file" ]; then
+                response_file=/tmp/codex_output.txt
+              fi
+              if [ ! -f "$response_file" ]; then
+                echo "(no output)"
+                exit 0
+              fi
+              cat "$response_file"
+            )"
