@@ -23,6 +23,7 @@ permissions:
   contents: read
   issues: write
   actions: read
+  reactions: write
 
 jobs:
   run:
@@ -97,6 +98,23 @@ jobs:
           echo "stale=$stale" >> "$GITHUB_OUTPUT"
           if [ "$stale" = true ]; then
             echo "Edit superseded; skipping stale run." > /tmp/codex_output.txt
+          fi
+
+      - name: Add eyes reaction
+        if: ${{ steps.edit_fresh.outputs.stale != 'true' }}
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          if [ -n "${{ inputs.comment_id }}" ]; then
+            gh api -X POST "repos/${{ github.repository }}/issues/comments/${{ inputs.comment_id }}/reactions" \
+              -f content=eyes >/dev/null
+          else
+            gh api -X POST "repos/${{ github.repository }}/issues/${{ inputs.issue_number }}/reactions" \
+              -f content=eyes >/dev/null
           fi
 
       - name: Find session artifact
