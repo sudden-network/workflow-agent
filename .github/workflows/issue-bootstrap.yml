@@ -61,55 +61,37 @@ jobs:
           set -euo pipefail
 
           missing_session=true
-          artifact_id=""
+          artifact_run_id=""
 
-          if ! artifact_id=$(gh api "repos/${{ github.repository }}/actions/artifacts?per_page=100" \
-            --jq '[.artifacts[] | select(.name=="codex-worker-session-${{ inputs.issue_number }}") | select(.expired==false)] | sort_by(.created_at) | last | .id'); then
+          if ! artifact_run_id=$(gh api "repos/${{ github.repository }}/actions/artifacts?per_page=100" \
+            --jq '[.artifacts[] | select(.name=="codex-worker-session-${{ inputs.issue_number }}") | select(.expired==false)] | sort_by(.created_at) | last | .workflow_run.id'); then
             echo "missing_session=true" >> "$GITHUB_OUTPUT"
-            echo "artifact_id=" >> "$GITHUB_OUTPUT"
+            echo "run_id=" >> "$GITHUB_OUTPUT"
             echo "Failed to list artifacts; cannot resume. Ensure actions: read permission." > /tmp/codex_output.txt
             echo "codex_exit=1" >> "$GITHUB_OUTPUT"
             exit 0
           fi
 
-          if [ "$artifact_id" = "null" ] || [ -z "$artifact_id" ]; then
+          if [ "$artifact_run_id" = "null" ] || [ -z "$artifact_run_id" ]; then
             echo "missing_session=true" >> "$GITHUB_OUTPUT"
-            echo "artifact_id=" >> "$GITHUB_OUTPUT"
+            echo "run_id=" >> "$GITHUB_OUTPUT"
             exit 0
           fi
 
           echo "missing_session=false" >> "$GITHUB_OUTPUT"
-          echo "artifact_id=$artifact_id" >> "$GITHUB_OUTPUT"
+          echo "run_id=$artifact_run_id" >> "$GITHUB_OUTPUT"
 
       - name: Download session artifact
         id: download_session
         if: ${{ inputs.comment_body != '' && steps.find_artifact.outputs.missing_session == 'false' }}
-        env:
-          GH_TOKEN: ${{ github.token }}
-        shell: bash
-        run: |
-          set -euo pipefail
-
-          artifact_id="${{ steps.find_artifact.outputs.artifact_id }}"
-          dest="${{ runner.temp }}/codex-session"
-          zip_path="${{ runner.temp }}/codex-session.zip"
-
-          rm -rf "$dest"
-          mkdir -p "$dest"
-
-          if ! gh api "repos/${{ github.repository }}/actions/artifacts/$artifact_id/zip" > "$zip_path"; then
-            echo "download_failed=true" >> "$GITHUB_OUTPUT"
-            echo "Failed to download session artifact; cannot resume." > /tmp/codex_output.txt
-            exit 0
-          fi
-
-          if ! unzip -q "$zip_path" -d "$dest"; then
-            echo "download_failed=true" >> "$GITHUB_OUTPUT"
-            echo "Failed to extract session artifact; cannot resume." > /tmp/codex_output.txt
-            exit 0
-          fi
-
-          echo "download_failed=false" >> "$GITHUB_OUTPUT"
+        uses: actions/download-artifact@v4
+        continue-on-error: true
+        with:
+          name: codex-worker-session-${{ inputs.issue_number }}
+          run-id: ${{ steps.find_artifact.outputs.run_id }}
+          github-token: ${{ github.token }}
+          repository: ${{ github.repository }}
+          path: ${{ runner.temp }}/codex-session
 
       - name: Restore session artifact
         id: restore
@@ -125,11 +107,9 @@ jobs:
             exit 0
           fi
 
-          if [ "${{ steps.download_session.outputs.download_failed }}" = "true" ]; then
+          if [ "${{ steps.download_session.outcome }}" != "success" ]; then
             echo "missing_session=true" >> "$GITHUB_OUTPUT"
-            if [ ! -f /tmp/codex_output.txt ]; then
-              echo "Session artifact download failed; cannot resume." > /tmp/codex_output.txt
-            fi
+            echo "Session artifact not found; cannot resume." > /tmp/codex_output.txt
             echo "codex_exit=1" >> "$GITHUB_OUTPUT"
             exit 0
           fi
