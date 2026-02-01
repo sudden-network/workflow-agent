@@ -52,6 +52,7 @@ jobs:
           codex_home="$RUNNER_TEMP/codex-home"
           mkdir -p "$codex_home"
           echo "CODEX_HOME=$codex_home" >> "$GITHUB_ENV"
+          echo "CODEX_STATE_DIR=$codex_home" >> "$GITHUB_ENV"
           echo "CODEX_SESSIONS_PATH=$codex_home/sessions" >> "$GITHUB_ENV"
 
       - name: Codex login
@@ -147,8 +148,14 @@ jobs:
             exit 0
           fi
 
-          mkdir -p "$CODEX_SESSIONS_PATH"
-          cp -a "$src/." "$CODEX_SESSIONS_PATH/"
+          dest="$CODEX_STATE_DIR"
+          if [ ! -d "$src/sessions" ] && [ ! -f "$src/history.jsonl" ] && [ ! -f "$src/config.toml" ]; then
+            dest="$CODEX_SESSIONS_PATH"
+          fi
+
+          mkdir -p "$CODEX_STATE_DIR"
+          mkdir -p "$dest"
+          cp -a "$src/." "$dest/"
 
           echo "missing_session=false" >> "$GITHUB_OUTPUT"
 
@@ -188,14 +195,20 @@ jobs:
           fi
 
           if [ -n "$COMMENT_BODY" ]; then
-            if [ ! -d "$CODEX_SESSIONS_PATH" ]; then
+            if [ -f "$CODEX_STATE_DIR/history.jsonl" ]; then
+              has_session=true
+            else
+              has_session=false
+            fi
+
+            if [ "$has_session" = false ] && [ ! -d "$CODEX_SESSIONS_PATH" ]; then
               echo "Session files missing; cannot resume." > /tmp/codex_output.txt
               echo "codex_exit=1" >> "$GITHUB_OUTPUT"
               exit 0
             fi
 
             session_files=$(find "$CODEX_SESSIONS_PATH" -type f -name "*.jsonl" | head -n 1 || true)
-            if [ -z "$session_files" ]; then
+            if [ "$has_session" = false ] && [ -z "$session_files" ]; then
               echo "Session files missing; cannot resume." > /tmp/codex_output.txt
               echo "codex_exit=1" >> "$GITHUB_OUTPUT"
               exit 0
@@ -210,12 +223,19 @@ jobs:
 
           echo "codex_exit=$codex_exit" >> "$GITHUB_OUTPUT"
 
+      - name: Strip Codex auth
+        if: ${{ steps.codex.outcome == 'success' }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -f "$CODEX_STATE_DIR/auth.json"
+
       - name: Upload session artifact
         if: ${{ steps.codex.outcome == 'success' }}
         uses: actions/upload-artifact@v4
         with:
           name: codex-worker-session-${{ inputs.issue_number }}
-          path: ${{ env.CODEX_SESSIONS_PATH }}
+          path: ${{ env.CODEX_STATE_DIR }}
           retention-days: 7
           overwrite: true
           if-no-files-found: error
