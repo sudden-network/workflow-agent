@@ -137,8 +137,12 @@ jobs:
           if [ -z "$session_id" ]; then
             session_id=$(grep -Eo 'session id: [0-9a-fA-F-]{36}' /tmp/codex_output.txt | tail -n 1 | awk '{print $3}')
           fi
+
           if [ -z "$session_id" ]; then
-            session_id=$(grep -Eo '[0-9a-fA-F-]{36}' /tmp/codex_output.txt | head -n 1)
+            echo "session_id=" >> "$GITHUB_OUTPUT"
+            echo "codex_exit=2" >> "$GITHUB_OUTPUT"
+            echo "Session id not found in Codex output." > /tmp/codex_output.txt
+            exit 0
           fi
 
           echo "session_id=$session_id" >> "$GITHUB_OUTPUT"
