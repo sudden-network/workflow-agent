@@ -32,6 +32,8 @@ permissions:
 jobs:
   run:
     runs-on: ubuntu-latest
+    env:
+      CODEX_HOME: ${{ github.workspace }}/.codex-home
     steps:
       - name: Checkout repo
         uses: actions/checkout@v4
@@ -43,12 +45,6 @@ jobs:
 
       - name: Install Codex CLI
         run: npm install -g @openai/codex@0.93.0
-
-      - name: Set Codex home
-        shell: bash
-        run: |
-          set -euo pipefail
-          echo "CODEX_HOME=$RUNNER_TEMP/codex-home" >> "$GITHUB_ENV"
 
       - name: Prepare Codex directories
         shell: bash
