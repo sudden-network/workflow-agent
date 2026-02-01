@@ -50,12 +50,6 @@ jobs:
           set -euo pipefail
           echo "CODEX_SESSIONS_PATH=$HOME/.codex/sessions" >> "$GITHUB_ENV"
 
-      - name: Prepare Codex directories
-        shell: bash
-        run: |
-          set -euo pipefail
-          mkdir -p "$CODEX_SESSIONS_PATH"
-
       - name: Download session artifact
         id: download_session
         if: ${{ inputs.comment_body != '' }}
@@ -118,11 +112,7 @@ jobs:
             exit 0
           fi
 
-          mkdir -p "$HOME/.codex"
-
           printenv OPENAI_API_KEY | codex login --with-api-key
-
-          mkdir -p "$CODEX_SESSIONS_PATH"
 
           prompt_file=$(mktemp)
           if [ -n "$COMMENT_BODY" ]; then
