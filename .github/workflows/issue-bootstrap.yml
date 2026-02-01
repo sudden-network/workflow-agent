@@ -6,25 +6,7 @@ on:
       issue_number:
         type: number
         required: true
-      issue_title:
-        type: string
-        required: true
-      issue_body:
-        type: string
-        required: false
-      issue_html_url:
-        type: string
-        required: false
-      comment_body:
-        type: string
-        required: false
       comment_id:
-        type: string
-        required: false
-      comment_html_url:
-        type: string
-        required: false
-      event_action:
         type: string
         required: false
       model:
@@ -91,7 +73,7 @@ jobs:
 
       - name: Find session artifact
         id: find_artifact
-        if: ${{ inputs.comment_body != '' || inputs.event_action == 'edited' }}
+        if: ${{ inputs.comment_id != '' || github.event.action == 'edited' }}
         env:
           GH_TOKEN: ${{ github.token }}
         shell: bash
@@ -121,7 +103,7 @@ jobs:
 
       - name: Download session artifact
         id: download_session
-        if: ${{ (inputs.comment_body != '' || inputs.event_action == 'edited') && steps.find_artifact.outputs.missing_session == 'false' }}
+        if: ${{ (inputs.comment_id != '' || github.event.action == 'edited') && steps.find_artifact.outputs.missing_session == 'false' }}
         uses: actions/download-artifact@v4
         continue-on-error: true
         with:
@@ -133,7 +115,7 @@ jobs:
 
       - name: Restore session artifact
         id: restore
-        if: ${{ inputs.comment_body != '' || inputs.event_action == 'edited' }}
+        if: ${{ inputs.comment_id != '' || github.event.action == 'edited' }}
         shell: bash
         run: |
           set -euo pipefail
@@ -175,16 +157,57 @@ jobs:
 
           echo "missing_session=false" >> "$GITHUB_OUTPUT"
 
+      - name: Load issue metadata
+        id: issue_data
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          issue_title=$(gh api "repos/${{ github.repository }}/issues/${{ inputs.issue_number }}" --jq '.title // ""')
+          issue_body=$(gh api "repos/${{ github.repository }}/issues/${{ inputs.issue_number }}" --jq '.body // ""')
+          issue_html_url=$(gh api "repos/${{ github.repository }}/issues/${{ inputs.issue_number }}" --jq '.html_url // ""')
+
+          {
+            echo "issue_title<<EOF"
+            printf '%s\n' "$issue_title"
+            echo "EOF"
+            echo "issue_body<<EOF"
+            printf '%s\n' "$issue_body"
+            echo "EOF"
+            echo "issue_html_url=$issue_html_url"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Load comment metadata
+        id: comment_data
+        if: ${{ inputs.comment_id != '' }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          comment_body=$(gh api "repos/${{ github.repository }}/issues/comments/${{ inputs.comment_id }}" --jq '.body // ""')
+          comment_html_url=$(gh api "repos/${{ github.repository }}/issues/comments/${{ inputs.comment_id }}" --jq '.html_url // ""')
+
+          {
+            echo "comment_body<<EOF"
+            printf '%s\n' "$comment_body"
+            echo "EOF"
+            echo "comment_html_url=$comment_html_url"
+          } >> "$GITHUB_OUTPUT"
+
       - name: Prepare prompt
         id: prompt
-        if: ${{ steps.login.outputs.missing_auth != 'true' && !((inputs.comment_body != '' || inputs.event_action == 'edited') && steps.restore.outputs.missing_session == 'true') }}
+        if: ${{ steps.login.outputs.missing_auth != 'true' && !((inputs.comment_id != '' || github.event.action == 'edited') && steps.restore.outputs.missing_session == 'true') }}
         env:
-          ISSUE_TITLE: ${{ inputs.issue_title }}
-          ISSUE_BODY: ${{ inputs.issue_body }}
-          ISSUE_HTML_URL: ${{ inputs.issue_html_url }}
-          COMMENT_BODY: ${{ inputs.comment_body }}
-          COMMENT_HTML_URL: ${{ inputs.comment_html_url }}
-          EVENT_ACTION: ${{ inputs.event_action }}
+          ISSUE_TITLE: ${{ steps.issue_data.outputs.issue_title }}
+          ISSUE_BODY: ${{ steps.issue_data.outputs.issue_body }}
+          ISSUE_HTML_URL: ${{ steps.issue_data.outputs.issue_html_url }}
+          COMMENT_BODY: ${{ steps.comment_data.outputs.comment_body }}
+          COMMENT_HTML_URL: ${{ steps.comment_data.outputs.comment_html_url }}
+          EVENT_ACTION: ${{ github.event.action }}
         shell: bash
         run: |
           set -euo pipefail
@@ -217,11 +240,11 @@ jobs:
 
       - name: Run Codex
         id: codex
-        if: ${{ steps.login.outputs.missing_auth != 'true' && !((inputs.comment_body != '' || inputs.event_action == 'edited') && steps.restore.outputs.missing_session == 'true') && steps.prompt.outputs.prompt_ready == 'true' }}
+        if: ${{ steps.login.outputs.missing_auth != 'true' && !((inputs.comment_id != '' || github.event.action == 'edited') && steps.restore.outputs.missing_session == 'true') && steps.prompt.outputs.prompt_ready == 'true' }}
         env:
-          ISSUE_TITLE: ${{ inputs.issue_title }}
-          ISSUE_BODY: ${{ inputs.issue_body }}
-          COMMENT_BODY: ${{ inputs.comment_body }}
+          ISSUE_TITLE: ${{ steps.issue_data.outputs.issue_title }}
+          ISSUE_BODY: ${{ steps.issue_data.outputs.issue_body }}
+          COMMENT_BODY: ${{ steps.comment_data.outputs.comment_body }}
           MODEL: ${{ inputs.model }}
           REASONING_EFFORT: ${{ inputs.reasoning_effort }}
         shell: bash
@@ -321,9 +344,9 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           ISSUE_NUMBER: ${{ inputs.issue_number }}
-          ISSUE_HTML_URL: ${{ inputs.issue_html_url }}
-          COMMENT_HTML_URL: ${{ inputs.comment_html_url }}
-          EVENT_ACTION: ${{ inputs.event_action }}
+          ISSUE_HTML_URL: ${{ steps.issue_data.outputs.issue_html_url }}
+          COMMENT_HTML_URL: ${{ steps.comment_data.outputs.comment_html_url }}
+          EVENT_ACTION: ${{ github.event.action }}
           FIND_CODEX_EXIT: ${{ steps.find_artifact.outputs.codex_exit }}
           LOGIN_CODEX_EXIT: ${{ steps.login.outputs.codex_exit }}
           PROMPT_CODEX_EXIT: ${{ steps.prompt.outputs.codex_exit }}
