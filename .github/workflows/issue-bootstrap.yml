@@ -159,9 +159,38 @@ jobs:
 
           echo "missing_session=false" >> "$GITHUB_OUTPUT"
 
+      - name: Prepare prompt
+        id: prompt
+        if: ${{ steps.login.outputs.missing_auth != 'true' && !(inputs.comment_body != '' && steps.restore.outputs.missing_session == 'true') }}
+        env:
+          ISSUE_TITLE: ${{ inputs.issue_title }}
+          ISSUE_BODY: ${{ inputs.issue_body }}
+          COMMENT_BODY: ${{ inputs.comment_body }}
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          prompt_file=$(mktemp)
+          if [ -n "$COMMENT_BODY" ]; then
+            printf '%s\n' "$COMMENT_BODY" > "$prompt_file"
+          else
+            template_file=".github/prompts/issue-bootstrap.md"
+            if [ ! -f "$template_file" ]; then
+              echo "Issue bootstrap prompt template missing." > /tmp/codex_output.txt
+              echo "codex_exit=1" >> "$GITHUB_OUTPUT"
+              echo "prompt_ready=false" >> "$GITHUB_OUTPUT"
+              exit 0
+            fi
+
+            python -c $'import os\nfrom pathlib import Path\n\ntemplate_path=Path(os.environ[\"TEMPLATE_FILE\"])\noutput_path=Path(os.environ[\"PROMPT_FILE\"])\n\ntemplate=template_path.read_text(encoding=\"utf-8\")\nreplacements={\n    \"{{ISSUE_TITLE}}\": os.environ.get(\"ISSUE_TITLE\", \"\"),\n    \"{{ISSUE_BODY}}\": os.environ.get(\"ISSUE_BODY\", \"\"),\n}\nfor key, value in replacements.items():\n    template = template.replace(key, value)\n\noutput_path.write_text(template, encoding=\"utf-8\")\n' TEMPLATE_FILE="$template_file" PROMPT_FILE="$prompt_file"
+          fi
+
+          echo "prompt_file=$prompt_file" >> "$GITHUB_OUTPUT"
+          echo "prompt_ready=true" >> "$GITHUB_OUTPUT"
+
       - name: Run Codex
         id: codex
-        if: ${{ steps.login.outputs.missing_auth != 'true' && !(inputs.comment_body != '' && steps.restore.outputs.missing_session == 'true') }}
+        if: ${{ steps.login.outputs.missing_auth != 'true' && !(inputs.comment_body != '' && steps.restore.outputs.missing_session == 'true') && steps.prompt.outputs.prompt_ready == 'true' }}
         env:
           ISSUE_TITLE: ${{ inputs.issue_title }}
           ISSUE_BODY: ${{ inputs.issue_body }}
@@ -172,14 +201,7 @@ jobs:
         run: |
           set -euo pipefail
 
-          prompt_file=$(mktemp)
-          if [ -n "$COMMENT_BODY" ]; then
-            printf '%s\n' "$COMMENT_BODY" > "$prompt_file"
-          else
-            template_file=".github/prompts/issue-bootstrap.md"
-
-            python -c $'import os\nfrom pathlib import Path\n\ntemplate_path=Path(os.environ[\"TEMPLATE_FILE\"])\noutput_path=Path(os.environ[\"PROMPT_FILE\"])\n\nif not template_path.is_file():\n    raise SystemExit(\"Issue bootstrap prompt template missing.\")\n\ntemplate=template_path.read_text(encoding=\"utf-8\")\nreplacements={\n    \"{{ISSUE_TITLE}}\": os.environ.get(\"ISSUE_TITLE\", \"\"),\n    \"{{ISSUE_BODY}}\": os.environ.get(\"ISSUE_BODY\", \"\"),\n}\nfor key, value in replacements.items():\n    template = template.replace(key, value)\n\noutput_path.write_text(template, encoding=\"utf-8\")\n' TEMPLATE_FILE="$template_file" PROMPT_FILE="$prompt_file"
-          fi
+          prompt_file="${{ steps.prompt.outputs.prompt_file }}"
 
           set +e
           codex_args=()
