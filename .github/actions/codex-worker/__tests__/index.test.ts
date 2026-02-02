@@ -15,12 +15,14 @@ type ExecCallOptions = {
     stderr?: (data: Buffer) => void;
   };
   input?: string | Buffer;
+  timeout?: number;
 };
 
 let mockArtifactClient: { downloadArtifact: jest.Mock; uploadArtifact: jest.Mock };
 let mockCodexOutput = '';
 let mockCodexExit = 0;
 let mockLoginExit = 0;
+let mockSimulateTimeout = false;
 
 jest.mock('@actions/core', () => ({
   getInput: jest.fn(),
@@ -41,6 +43,9 @@ jest.mock('@actions/exec', () => ({
       if (opts.env?.CODEX_STATE_DIR) {
         mockFs.mkdirSync(opts.env.CODEX_STATE_DIR, { recursive: true });
         mockFs.writeFileSync(mockPath.join(opts.env.CODEX_STATE_DIR, 'history.jsonl'), '');
+      }
+      if (mockSimulateTimeout && opts.timeout) {
+        throw new Error(`The command 'codex ${(args || []).join(' ')}' was killed because it exceeded the timeout of ${opts.timeout} milliseconds.`);
       }
       const outputBuffer = Buffer.from(mockCodexOutput, 'utf8');
       if (opts.listeners?.stdout) {
@@ -114,6 +119,8 @@ const setInputs = (overrides: Partial<Record<string, string>> = {}) => {
     comment_id: '',
     model: '',
     reasoning_effort: '',
+    timeout_minutes: '30',
+    max_output_size: '10485760',
     openai_api_key: 'test-key',
     github_token: 'ghs_test',
     ...overrides,
@@ -194,6 +201,7 @@ describe('Codex Worker action', () => {
     };
     mockCodexExit = 0;
     mockLoginExit = 0;
+    mockSimulateTimeout = false;
     mockCodexOutput = `${JSON.stringify({
       type: 'item.completed',
       item: { type: 'agent_message', text: 'Hello from Codex' },
@@ -918,5 +926,59 @@ describe('Codex Worker action', () => {
       force: true,
     });
     rmSpy.mockRestore();
+  });
+
+  test('passes timeout to exec and posts timeout message', async () => {
+    setInputs({ issue_number: '50', timeout_minutes: '5' });
+    setContext({ action: 'opened' });
+
+    mockSimulateTimeout = true;
+    const octokit = createOctokit();
+    setOctokit(octokit);
+
+    await runAction();
+    await waitFor(() => coreSetFailedMock.mock.calls.length === 1);
+
+    expect(execMock).toHaveBeenCalledWith(
+      'codex',
+      expect.any(Array),
+      expect.objectContaining({
+        timeout: 300000,
+      })
+    );
+  });
+
+  test('uses default timeout of 30 minutes', async () => {
+    setInputs({ issue_number: '51' });
+    setContext({ action: 'opened' });
+
+    const octokit = createOctokit();
+    setOctokit(octokit);
+
+    await runAction();
+    await waitFor(() => octokit.rest.issues.createComment.mock.calls.length === 1);
+
+    expect(execMock).toHaveBeenCalledWith(
+      'codex',
+      expect.any(Array),
+      expect.objectContaining({
+        timeout: 1800000,
+      })
+    );
+  });
+
+  test('truncates output exceeding max_output_size', async () => {
+    setInputs({ issue_number: '52', max_output_size: '50' });
+    setContext({ action: 'opened' });
+
+    mockCodexOutput = 'A'.repeat(100);
+    const octokit = createOctokit();
+    setOctokit(octokit);
+
+    await runAction();
+    await waitFor(() => octokit.rest.issues.createComment.mock.calls.length === 1);
+
+    const [{ body }] = octokit.rest.issues.createComment.mock.calls[0];
+    expect(body).toContain('truncated');
   });
 });

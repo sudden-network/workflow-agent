@@ -18,6 +18,14 @@ inputs:
     description: Codex reasoning effort override (optional)
     required: false
     default: ""
+  timeout_minutes:
+    description: Maximum execution time in minutes (default 30)
+    required: false
+    default: "30"
+  max_output_size:
+    description: Maximum output size in bytes before truncation (default 10MB)
+    required: false
+    default: "10485760"
   openai_api_key:
     description: OpenAI API key
     required: true

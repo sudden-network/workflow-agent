@@ -117,6 +117,8 @@ const main = async (): Promise<void> => {
   const commentIdInput = core.getInput('comment_id') || '';
   const model = core.getInput('model') || '';
   const reasoningEffort = core.getInput('reasoning_effort') || '';
+  const timeoutMinutes = Number(core.getInput('timeout_minutes') || '30');
+  const maxOutputSize = Number(core.getInput('max_output_size') || '10485760');
   const openaiApiKey = core.getInput('openai_api_key', { required: true });
   const githubToken = core.getInput('github_token', { required: true });
 
@@ -148,6 +150,8 @@ const main = async (): Promise<void> => {
 
   let codexExit: number | null = null;
   let promptText = '';
+  let timedOut = false;
+  let outputTruncated = false;
   let resumeMode = false;
 
   try {
@@ -350,21 +354,49 @@ const main = async (): Promise<void> => {
       }
 
       const outputStream = fs.createWriteStream(OUTPUT_FILE, { flags: 'w' });
+      let outputBytes = 0;
+      outputTruncated = false;
       const listeners: ExecListeners = {
         stdout: (data) => {
-          outputStream.write(data);
+          if (!outputTruncated) {
+            outputBytes += data.length;
+            if (outputBytes > maxOutputSize) {
+              outputTruncated = true;
+              outputStream.write(Buffer.from(`\n\n[Output truncated at ${(maxOutputSize / 1048576).toFixed(0)}MB limit]\n`));
+            } else {
+              outputStream.write(data);
+            }
+          }
         },
         stderr: (data) => {
-          outputStream.write(data);
+          if (!outputTruncated) {
+            outputBytes += data.length;
+            if (outputBytes > maxOutputSize) {
+              outputTruncated = true;
+              outputStream.write(Buffer.from(`\n\n[Output truncated at ${(maxOutputSize / 1048576).toFixed(0)}MB limit]\n`));
+            } else {
+              outputStream.write(data);
+            }
+          }
         },
       };
+
+      const timeoutMs = timeoutMinutes * 60 * 1000;
+      timedOut = false;
+      const timer = setTimeout(() => {
+        timedOut = true;
+        core.info(`CLI execution timed out after ${timeoutMinutes} minutes`);
+      }, timeoutMs);
 
       const exitCode = await exec.exec('codex', codexArgs, {
         env: codexEnv,
         input: Buffer.from(promptText, 'utf8'),
         listeners,
         ignoreReturnCode: true,
+        ...(timeoutMs > 0 ? { timeout: timeoutMs } : {}),
       });
+
+      clearTimeout(timer);
 
       await new Promise((resolve) => outputStream.end(resolve));
       codexExit = exitCode;
@@ -415,7 +447,13 @@ const main = async (): Promise<void> => {
     })();
 
     let body = '';
-    if (codexExit && codexExit !== 0) {
+    if (timedOut) {
+      const partial = fs.existsSync(RESPONSE_FILE) ? readText(RESPONSE_FILE)
+        : fs.existsSync(OUTPUT_FILE) ? readText(OUTPUT_FILE)
+        : '';
+      const truncNote = outputTruncated ? ' (output was also truncated due to size limit)' : '';
+      body = header + `⏱️ Execution timed out after ${timeoutMinutes} minutes${truncNote}.\n\n${partial || '(no partial output)'}`;
+    } else if (codexExit && codexExit !== 0) {
       if (fs.existsSync(OUTPUT_FILE)) {
         body = header + readText(OUTPUT_FILE);
       } else {
