@@ -25,7 +25,7 @@ Composite GitHub Action that runs Codex CLI from issues and issue comments.
 - `actions: read` — list/download artifacts for session restore.
 
 4) Runner requirements
-- Bash shell, `git`, `gh`, and `python` available.
+- Bash shell, `git`, `gh`, and `node` available.
 
 ## Quick start (caller workflow)
 
