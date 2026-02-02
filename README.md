@@ -22,7 +22,7 @@ GitHub Action (Node) that runs Codex CLI from issues and issue comments.
 - `contents: write` — push branches/commits back to the repo.
 - `issues: write` — add reactions and post issue comments.
 - `pull-requests: write` — create draft PRs from branches.
-- `actions: read` — list/download artifacts for session restore.
+- `actions: write` — list/download/delete/upload artifacts for session restore.
 
 4) Runner requirements
 - Bash shell, `git`, `gh`, and `node` available.
@@ -44,7 +44,7 @@ permissions:
   contents: write
   issues: write
   pull-requests: write
-  actions: read
+  actions: write
 
 jobs:
   codex-worker:
@@ -82,5 +82,5 @@ jobs:
 
 ## Files
 
-- `/.github/actions/codex-worker/action.yml` — composite action entry point.
+- `/.github/actions/codex-worker/action.yml` — Node action entry point.
 - `/draft.md` — original design notes and exploration.
