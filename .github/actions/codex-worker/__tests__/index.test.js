@@ -137,29 +137,28 @@ const runAction = async () => {
   await flushPromises();
 };
 
-beforeEach(() => {
-  jest.clearAllMocks();
-  mockArtifactClient = {
-    downloadArtifact: jest.fn(),
-    uploadArtifact: jest.fn(),
-  };
-  mockLastCodexArgs = null;
-  mockLastCodexInput = '';
-  mockCodexExit = 0;
-  mockLoginExit = 0;
-  mockCodexOutput = `${JSON.stringify({
-    type: 'item.completed',
-    item: { type: 'agent_message', text: 'Hello from Codex' },
-  })}\n`;
-
-  const runnerTemp = fs.mkdtempSync(path.join(os.tmpdir(), 'cw-test-'));
-  process.env.RUNNER_TEMP = runnerTemp;
-  process.env.GITHUB_ACTION_PATH = path.resolve(__dirname, '..');
-  fs.rmSync('/tmp/codex_output.txt', { force: true });
-  fs.rmSync('/tmp/codex_response.txt', { force: true });
-});
-
 describe('Codex Worker action', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+    mockArtifactClient = {
+      downloadArtifact: jest.fn(),
+      uploadArtifact: jest.fn(),
+    };
+    mockLastCodexArgs = null;
+    mockLastCodexInput = '';
+    mockCodexExit = 0;
+    mockLoginExit = 0;
+    mockCodexOutput = `${JSON.stringify({
+      type: 'item.completed',
+      item: { type: 'agent_message', text: 'Hello from Codex' },
+    })}\n`;
+
+    const runnerTemp = fs.mkdtempSync(path.join(os.tmpdir(), 'cw-test-'));
+    process.env.RUNNER_TEMP = runnerTemp;
+    process.env.GITHUB_ACTION_PATH = path.resolve(__dirname, '..');
+    fs.rmSync('/tmp/codex_output.txt', { force: true });
+    fs.rmSync('/tmp/codex_response.txt', { force: true });
+  });
   test('runs on new issue and posts response', async () => {
     setInputs({ issue_number: '7' });
     setContext({ action: 'opened' });
