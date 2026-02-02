@@ -16,11 +16,12 @@ Instructions:
 - If you need literal backticks inline, escape them (e.g., \`).
 - Put code snippets in fenced code blocks on their own lines.
 - When creating PRs with `gh pr create`, pass multiline bodies via `--body-file` or a heredoc so newlines are real; do not include literal \n sequences.
-- Include a collapsed <details> section titled "Reasoning" with a brief, high-level rationale only (no step-by-step chain-of-thought).
+- Include a collapsed `<details>` section titled "Reasoning" with a brief, high-level rationale only (no step-by-step chain-of-thought).
 
 {{EDIT_CONTEXT}}
+
 <issue-number>{{ISSUE_NUMBER}}</issue-number>
 
-<title>{{ISSUE_TITLE}}</title>
+<issue-title>{{ISSUE_TITLE}}</issue-title>
 
-<description>{{ISSUE_BODY}}</description>
+<issue-body>{{ISSUE_BODY}}</description>

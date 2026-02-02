@@ -350,19 +350,14 @@ const main = async (): Promise<void> => {
       }
 
       const outputStream = fs.createWriteStream(OUTPUT_FILE, { flags: 'w' });
-      const listeners: ExecListeners = {
-        stdout: (data) => {
-          outputStream.write(data);
-        },
-        stderr: (data) => {
-          outputStream.write(data);
-        },
-      };
 
       const exitCode = await exec.exec('codex', codexArgs, {
         env: codexEnv,
         input: Buffer.from(promptText, 'utf8'),
-        listeners,
+        listeners: {
+          stdout: (data) => outputStream.write(data),
+          stderr: (data) => outputStream.write(data),
+        },
         ignoreReturnCode: true,
       });
 
