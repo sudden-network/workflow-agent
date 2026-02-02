@@ -15,8 +15,8 @@ Reusable GitHub Actions workflow that runs Codex CLI from issues and issue comme
 - Add `OPENAI_API_KEY` as a secret in the target repo or org.
 
 2) Repo settings (required for PR creation)
-- Settings → Actions → Workflow permissions → **Read and write**
-- Enable **“Allow GitHub Actions to create and approve pull requests.”**
+- Settings → Actions → Workflow permissions → enable **“Allow GitHub Actions to create and approve pull requests.”**
+- The **Read and write** default is optional if your workflow sets explicit permissions (this one does).
 
 3) Caller workflow permissions
 - `contents: write`
