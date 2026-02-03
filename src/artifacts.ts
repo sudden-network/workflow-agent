@@ -2,6 +2,7 @@ import { DefaultArtifactClient } from '@actions/artifact';
 import { context, getOctokit } from '@actions/github';
 import fs from 'fs';
 import path from 'path';
+import { getIssueNumber, getSubjectType } from "./context";
 
 type RepoArtifact = {
   id: number;
@@ -9,6 +10,12 @@ type RepoArtifact = {
   expired: boolean;
   created_at?: string;
   workflow_run?: { id?: number };
+};
+
+const ARTIFACT_PREFIX = 'action-agent';
+
+const getArtifactName = (): string => {
+  return `${ARTIFACT_PREFIX}-${getSubjectType()}-${getIssueNumber()}`;
 };
 
 const listArtifactsByName = async (githubToken: string, name: string): Promise<RepoArtifact[]> => {
@@ -38,11 +45,10 @@ const getLatestArtifact = async (githubToken: string, name: string): Promise<Rep
 
 export const downloadLatestArtifact = async (
   githubToken: string,
-  name: string,
   downloadPath: string,
 ): Promise<RepoArtifact | null> => {
   const { owner, repo } = context.repo;
-  const latest = await getLatestArtifact(githubToken, name);
+  const latest = await getLatestArtifact(githubToken, getArtifactName());
   if (!latest) {
     return null;
   }
@@ -75,10 +81,10 @@ const collectFiles = (dir: string): string[] => {
   });
 };
 
-export const uploadArtifact = async (name: string, rootDirectory: string): Promise<void> => {
+export const uploadArtifact = async (rootDirectory: string): Promise<void> => {
   const files = collectFiles(rootDirectory);
   if (!files.length) {
     return;
   }
-  await new DefaultArtifactClient().uploadArtifact(name, files, rootDirectory);
+  await new DefaultArtifactClient().uploadArtifact(getArtifactName(), files, rootDirectory);
 };

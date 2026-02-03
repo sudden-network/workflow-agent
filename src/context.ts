@@ -1,10 +1,9 @@
-
 import { context } from '@actions/github';
 
 export const getSubjectType = (): 'issue' | 'pr' => {
   const { issue, pull_request } = context.payload;
 
-  if (pull_request) return 'pr';
+  if (pull_request || issue?.pull_request) return 'pr';
   if (issue) return 'issue';
 
   throw new Error("Unable to get subject type");

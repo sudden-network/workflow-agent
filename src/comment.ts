@@ -1,6 +1,6 @@
 import { getInput } from '@actions/core';
 import { context, getOctokit } from '@actions/github';
-import { getIssueNumber } from './github-context';
+import { getIssueNumber } from './context';
 
 export const postComment = async (message: string): Promise<void> => {
   const { owner, repo } = context.repo;
