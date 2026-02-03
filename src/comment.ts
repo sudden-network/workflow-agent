@@ -1,3 +1,4 @@
+import { warning } from '@actions/core';
 import { context, getOctokit } from '@actions/github';
 import { getIssueNumber } from './context';
 import { inputs } from './input';
@@ -14,7 +15,10 @@ export const postComment = async (comment: string): Promise<void> => {
       body: comment,
     });
   } catch (error) {
-    if (isPermissionError(error)) return;
+    if (isPermissionError(error)) {
+      warning('Attempted to post a comment but the workflow lacks `issues: write` permission.');
+      return;
+    }
     throw error;
   }
 };
