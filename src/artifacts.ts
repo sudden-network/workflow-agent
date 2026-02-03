@@ -1,5 +1,7 @@
 import { DefaultArtifactClient } from '@actions/artifact';
 import { context, getOctokit } from '@actions/github';
+import fs from 'fs';
+import path from 'path';
 
 type RepoArtifact = {
   id: number;
@@ -60,6 +62,23 @@ export const downloadLatestArtifact = async (
   return latest;
 };
 
+const collectFiles = (dir: string): string[] => {
+  return fs.readdirSync(dir, { withFileTypes: true }).flatMap((entry) => {
+    const fullPath = path.join(dir, entry.name);
+    if (entry.isDirectory()) {
+      return collectFiles(fullPath);
+    }
+    if (entry.isFile()) {
+      return [fullPath];
+    }
+    return [];
+  });
+};
+
 export const uploadArtifact = async (name: string, rootDirectory: string): Promise<void> => {
-  await new DefaultArtifactClient().uploadArtifact(name, [rootDirectory], rootDirectory);
+  const files = collectFiles(rootDirectory);
+  if (!files.length) {
+    return;
+  }
+  await new DefaultArtifactClient().uploadArtifact(name, files, rootDirectory);
 };
