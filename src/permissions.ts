@@ -3,14 +3,18 @@ import { inputs } from './input';
 
 const { actor, repo: { owner, repo } } = context;
 
-export const isPermissionError = (error: unknown): boolean => {
-  if (!error || typeof error !== 'object' || !('status' in error)) return false;
+const getErrorStatus = (error: unknown): number | undefined => {
+  if (!error || typeof error !== 'object' || !('status' in error)) return undefined;
   const status = (error as { status?: number }).status;
-  return status === 403;
+  return typeof status === 'number' ? status : undefined;
+};
+
+export const isPermissionError = (error: unknown): boolean => {
+  return getErrorStatus(error) === 403;
 };
 
 const isNotFoundError = (error: unknown): boolean => {
-  return Boolean(error && typeof error === 'object' && 'status' in error && (error as { status?: number }).status === 404);
+  return getErrorStatus(error) === 404;
 };
 
 const fetchPermission = async (): Promise<string> => {
