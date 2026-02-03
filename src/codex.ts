@@ -11,9 +11,13 @@ const ensureDir = (dir: string): void => {
   fs.mkdirSync(dir, { recursive: true });
 };
 
-const restoreCodex = async (githubToken: string): Promise<void> => {
+const restoreSession = async (githubToken: string): Promise<void> => {
   ensureDir(CODEX_DIR);
   await downloadLatestArtifact(githubToken, CODEX_DIR);
+};
+
+const persistSession = async (): Promise<void> => {
+  await uploadArtifact(CODEX_DIR);
 };
 
 const install = async (version = CODEX_VERSION): Promise<void> => {
@@ -35,15 +39,15 @@ export const bootstrap = async ({
   apiKey: string;
   githubToken: string;
 }) => {
-  await restoreCodex(githubToken);
   await install(version);
+  await restoreSession(githubToken);
   await login(apiKey);
+};
+
+export const teardown = async (): Promise<void> => {
+  await persistSession();
 };
 
 export const runCodex = async (prompt: string): Promise<void> => {
   await runCommand('codex', ['exec', prompt]);
-};
-
-export const teardown = async (): Promise<void> => {
-  await uploadArtifact(CODEX_DIR);
 };
