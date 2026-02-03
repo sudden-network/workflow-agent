@@ -1,23 +1,14 @@
-import { exportVariable } from '@actions/core';
 import fs from 'fs';
+import os from 'os';
 import path from 'path';
 import { downloadLatestArtifact, uploadArtifact } from './artifacts';
 import { runCommand } from './exec';
 
 const CODEX_VERSION = '0.93.0';
-const CODEX_DIR = path.join(process.env.RUNNER_TEMP || '/tmp', 'action-agent-codex');
+const CODEX_DIR = path.join(os.homedir(), '.codex');
 
 const ensureDir = (dir: string): void => {
   fs.mkdirSync(dir, { recursive: true });
-};
-
-const setCodexEnv = () => {
-  const sessionsDir = path.join(CODEX_DIR, 'sessions');
-
-  ensureDir(sessionsDir);
-  exportVariable('p', CODEX_DIR);
-  exportVariable('CODEX_STATE_DIR', CODEX_DIR);
-  exportVariable('CODEX_SESSIONS_PATH', sessionsDir);
 };
 
 const restoreCodex = async (githubToken: string, codexDir: string): Promise<void> => {
@@ -52,9 +43,7 @@ export const bootstrap = async ({
   apiKey: string;
   githubToken: string;
 }) => {
-  setCodexEnv();
   await restoreCodex(githubToken, CODEX_DIR);
-  exportVariable('OPENAI_API_KEY', apiKey);
   await install(version);
   await login(apiKey);
 };
