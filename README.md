@@ -69,7 +69,6 @@ This action configures the GitHub MCP server for Codex and passes `GITHUB_TOKEN`
 ## Quick start examples
 
 All examples assume you created a secret named `OPENAI_API_KEY`.
-Tip: run this action after `actions/checkout` if you want Codex to read repository contents (including `AGENTS.md`).
 
 ### 1) Issue assistant
 
@@ -126,7 +125,7 @@ jobs:
       issues: write
       actions: read # only if resume: true
     steps:
-      - uses: actions/checkout@v4 # required for Codex to read/modify repo files
+      - uses: actions/checkout@v4
       - uses: sudden-network/action-agent@main
         with:
           api_key: ${{ secrets.OPENAI_API_KEY }}
