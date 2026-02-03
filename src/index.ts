@@ -19,7 +19,7 @@ const main = async (): Promise<void> => {
       `Workspace: ${process.env.GITHUB_WORKSPACE}`,
       `Event: ${JSON.stringify(await import(process.env.GITHUB_EVENT_PATH ?? ""))}`, // TODO throw if GITHUB_EVENT_PATH is undefined
       'Act autonomously and take action only if it is useful.',
-    ].join('\n'), githubToken);
+    ].join('\n'));
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
 
