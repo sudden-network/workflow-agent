@@ -103,7 +103,7 @@ jobs:
 
 ### PR reviewer
 
-Review pull requests, respond to PR comments, and open follow-up PRs when you can fix something safely.
+Review pull requests, respond to PR comments, and open follow-up issues when you find actionable improvements.
 
 ```yaml
 name: action-agent-pr-reviewer
