@@ -15,14 +15,14 @@ const main = async (): Promise<void> => {
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
 
+    setFailed(`action-agent failed: ${message}`);
+
     await postComment(`
 action-agent failed:
 \`\`\`
 ${message}
 \`\`\`
     `);
-
-    setFailed(`action-agent failed: ${message}`);
   } finally {
     await teardown();
   }
