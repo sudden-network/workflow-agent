@@ -11,17 +11,9 @@ const ensureDir = (dir: string): void => {
   fs.mkdirSync(dir, { recursive: true });
 };
 
-const restoreCodex = async (githubToken: string, codexDir: string): Promise<void> => {
-  const downloadPath = path.join(process.env.RUNNER_TEMP || '/tmp', 'action-agent-artifact');
-  fs.rmSync(downloadPath, { recursive: true, force: true });
-  ensureDir(downloadPath);
-  const latest = await downloadLatestArtifact(githubToken, downloadPath);
-  if (!latest) {
-    return;
-  }
-  fs.rmSync(codexDir, { recursive: true, force: true });
-  ensureDir(codexDir);
-  fs.cpSync(downloadPath, codexDir, { recursive: true });
+const restoreCodex = async (githubToken: string): Promise<void> => {
+  ensureDir(CODEX_DIR);
+  await downloadLatestArtifact(githubToken, CODEX_DIR);
 };
 
 const install = async (version = CODEX_VERSION): Promise<void> => {
@@ -43,7 +35,7 @@ export const bootstrap = async ({
   apiKey: string;
   githubToken: string;
 }) => {
-  await restoreCodex(githubToken, CODEX_DIR);
+  await restoreCodex(githubToken);
   await install(version);
   await login(apiKey);
 };
