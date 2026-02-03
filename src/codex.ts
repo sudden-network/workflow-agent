@@ -15,10 +15,13 @@ const MCP_TOKEN_ENV = 'GITHUB_TOKEN';
 const ensureDir = (dir: string) => fs.mkdirSync(dir, { recursive: true });
 const configPath = () => path.join(CODEX_DIR, 'config.toml');
 
-const shouldResume = (): boolean =>
-  inputs.resume &&
-  context.payload.repository?.private === true &&
-  Boolean(context.payload.issue || context.payload.pull_request);
+const shouldResume = (): boolean => {
+  if (!inputs.resume) return false;
+  if (context.payload.repository?.private !== true) {
+    throw new Error('Resume is only supported on private repositories.');
+  }
+  return Boolean(context.payload.issue || context.payload.pull_request);
+};
 
 const configureMcp = () => {
   ensureDir(CODEX_DIR);
