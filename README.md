@@ -158,7 +158,7 @@ on:
   workflow_dispatch:
     inputs:
       prompt:
-        description: Instructions for this run (appended to the built-in prompt)
+        description: Instructions for this run
         required: true
 
 jobs:
