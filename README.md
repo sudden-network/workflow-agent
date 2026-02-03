@@ -140,7 +140,7 @@ jobs:
 
 ### Scheduled agent
 
-Run periodic automation that would be annoying to do manually (e.g. a regular code security sweep that files issues).
+Run periodic automation that would be annoying to do manually (e.g. a regular code security review that files issues).
 
 ```yaml
 name: action-agent-scheduled
@@ -162,7 +162,7 @@ jobs:
           api_key: ${{ secrets.OPENAI_API_KEY }}
           github_token: ${{ github.token }}
           prompt: |
-            Perform a lightweight security review of this repository.
+            Perform a security review of this repository.
             Open GitHub issues for any findings (include file paths, risk, and suggested fixes).
 ```
 
