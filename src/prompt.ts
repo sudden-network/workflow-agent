@@ -1,5 +1,5 @@
 import { context } from '@actions/github';
-import { inputs } from './input';
+import { inputs } from './github/input';
 
 export const buildPrompt = (): string => `
 You are action-agent, running inside a GitHub Actions runner.
