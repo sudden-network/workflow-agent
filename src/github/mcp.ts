@@ -10,7 +10,7 @@ import { isNotFoundError } from './error';
 interface RunningMcpServer {
   url: Promise<string>;
   close: () => Promise<void>;
-};
+}
 
 const readJsonBody = async (req: http.IncomingMessage): Promise<unknown> => {
   const chunks: Buffer[] = [];
@@ -26,6 +26,37 @@ const readJsonBody = async (req: http.IncomingMessage): Promise<unknown> => {
 const createGitHubServer = (githubToken: string): McpServer => {
   const octokit = getOctokit(githubToken);
   const server = new McpServer({ name: 'action-agent-github', version: '0.1.0' });
+
+  server.registerTool(
+    'octokit_request',
+    {
+      description:
+        'Call any GitHub REST API endpoint via Octokit.request. Provide `route` like "GET /repos/{owner}/{repo}/pulls/{pull_number}".',
+      inputSchema: {
+        route: z.string(),
+        parameters: z.record(z.string(), z.unknown()).optional(),
+      },
+    },
+    async ({ route, parameters }) => {
+      const response = await octokit.request(route, parameters ?? {});
+
+      return {
+        content: [
+          {
+            type: 'text',
+            text: JSON.stringify(
+              {
+                status: response.status,
+                data: response.data,
+              },
+              null,
+              2,
+            ),
+          },
+        ],
+      };
+    },
+  );
 
   server.registerTool(
     'add_issue_comment',
