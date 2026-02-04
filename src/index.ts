@@ -5,13 +5,13 @@ import { isIssueOrPullRequest } from './github/context';
 import { ensureWriteAccess, ensureTrustedAuthorAssociation } from './github/permissions';
 import { buildPrompt } from './prompt';
 
-const main = async (): Promise<void> => {
+const main = async () => {
   try {
     await Promise.all([
       ensureWriteAccess(),
       ensureTrustedAuthorAssociation(),
-      bootstrap(),
     ]);
+    await bootstrap();
     await runCodex(buildPrompt());
     await teardown();
   } catch (error) {

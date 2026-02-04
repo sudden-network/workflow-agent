@@ -113,6 +113,7 @@ const startGitHubMcpServer = async (githubToken: string) => {
     if (req.method === 'GET' || req.method === 'DELETE') {
       const sessionId = req.headers['mcp-session-id'];
       const transport = typeof sessionId === 'string' ? transports.get(sessionId) : undefined;
+
       if (!transport) {
         res.statusCode = 400;
         res.end('Invalid or missing session ID');
@@ -147,12 +148,15 @@ const startGitHubMcpServer = async (githubToken: string) => {
   });
 
   await new Promise<void>((resolve, reject) => {
-    server.listen(0, '127.0.0.1', () => resolve());
     server.on('error', reject);
+    server.listen(0, '127.0.0.1', () => {
+      server.unref();
+      resolve();
+    });
   });
-  server.unref();
 
   const address = server.address();
+
   if (!address || typeof address === 'string') {
     throw new Error('Failed to start MCP server');
   }

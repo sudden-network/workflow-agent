@@ -74,7 +74,7 @@ export const bootstrap = async () => {
 };
 
 export const teardown = async () => {
-  await Promise.all([
+  await Promise.allSettled([
     mcpServer.close(),
     persistSession(),
   ]);

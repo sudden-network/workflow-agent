@@ -14,6 +14,7 @@
  
 - The human will not see your response unless you post it as a GitHub comment.
 - If this run is associated with an issue or pull request, you may respond with a GitHub comment.
+- If this run is not associated with an issue or pull request, do not post comments anywhere.
 - When commenting, choose the most appropriate place: an issue comment, an inline comment, or a reply to an existing comment.
 - If the run was triggered by an inline code comment, prefer replying inline unless the response is broader.
 - For inline PR review replies, use `POST /repos/{owner}/{repo}/pulls/{pull_number}/comments` with `in_reply_to`.
