@@ -70,9 +70,17 @@ export const downloadLatestArtifact = async (
   return latest;
 };
 
-export const uploadArtifact = async (rootDirectory: string): Promise<void> => {
-  const pattern = `${path.resolve(rootDirectory).replace(/\\/g, '/')}/**/*`;
-  const globber = await create(pattern, { matchDirectories: false });
+export const uploadArtifact = async (rootDirectory: string, patterns: string[]): Promise<void> => {
+  const root = path.resolve(rootDirectory);
 
-  await new DefaultArtifactClient().uploadArtifact(getArtifactName(), await globber.glob(), rootDirectory);
+  const globber = await create(
+    patterns.map((pattern) => path.join(root, pattern)).join('\n'),
+    { matchDirectories: false },
+  );
+
+  const files = await globber.glob();
+
+  if (files.length === 0) return;
+
+  await new DefaultArtifactClient().uploadArtifact(getArtifactName(), files, rootDirectory);
 };

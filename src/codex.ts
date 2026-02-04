@@ -48,10 +48,7 @@ const restoreSession = async () => {
 
 const persistSession = async () => {
   if (!shouldResume()) return;
-  fs.rmSync(CODEX_CONFIG_PATH, { force: true });
-  fs.rmSync(path.join(CODEX_DIR, 'auth.json'), { force: true });
-  fs.rmSync(path.join(CODEX_DIR, 'tmp'), { recursive: true, force: true });
-  await uploadArtifact(CODEX_DIR);
+  await uploadArtifact(CODEX_DIR, ['sessions/**', 'history.jsonl']);
 };
 
 const install = async () => {
