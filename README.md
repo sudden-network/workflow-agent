@@ -210,4 +210,3 @@ jobs:
 
 - `403: Resource not accessible by integration` typically means missing workflow permissions (`contents: write`, `pull-requests: write`, `issues: write`, etc.).
 - `Resume is enabled but the workflow lacks actions: read permission.` means you set `resume: true` but didn't grant `actions: read`.
-- If the workflow succeeds but you don't see a comment, check the run logs. By design, Codex decides when/where to comment (if at all); it may react to the triggering comment instead. Tune this with the `prompt` input.
