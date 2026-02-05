@@ -4,21 +4,22 @@ import { postErrorComment } from './github/comment';
 import { isIssueOrPullRequest } from './github/context';
 import { githubMcpServer } from './github/mcp';
 import { buildPrompt } from './prompt';
-import { ensurePrivateRepo, ensureWriteAccess } from './github/security';
+import { fetchTrustedCollaborators, ensureWriteAccess } from './github/security';
 
 const main = async () => {
   try {
-    const agent = await getAgent();
+    const [trustedCollaborators, agent] = await Promise.all([
+      fetchTrustedCollaborators(),
+      getAgent(),
+      ensureWriteAccess(),
+    ]);
 
     try {
-      ensurePrivateRepo();
-      await ensureWriteAccess();
-
       const { resumed } = await agent.bootstrap({
         mcpServers: [await githubMcpServer.start()]
       });
 
-      await agent.run(buildPrompt({ resumed }));
+      await agent.run(buildPrompt({ resumed, trustedCollaborators }));
     } finally {
       await Promise.allSettled([
         githubMcpServer.stop(),

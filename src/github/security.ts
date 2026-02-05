@@ -1,16 +1,6 @@
 import { context } from '@actions/github';
-import { getRepoVisibility } from './context';
 import { fetchPermission } from './permissions';
-
-export const ensurePrivateRepo = () => {
-  const visibility = getRepoVisibility();
-
-  if (visibility !== 'private') {
-    throw new Error(
-      `action-agent requires a private repository. Visibility detected: '${visibility}'. Set the repo to private to use this action.`,
-    );
-  }
-};
+import { getOctokit } from './octokit';
 
 export const ensureWriteAccess = async (): Promise<void> => {
   const { actor, repo: { owner, repo } } = context;
@@ -18,5 +8,27 @@ export const ensureWriteAccess = async (): Promise<void> => {
 
   if (!(["admin", "write", "maintain"].includes(permission))) {
     throw new Error(`Actor '${actor}' must have write access to ${owner}/${repo}. Detected permission: '${permission}'.`);
+  }
+};
+
+export const fetchTrustedCollaborators = async (): Promise<string[]> => {
+  const { repo: { owner, repo } } = context;
+  const octokit = getOctokit();
+
+  try {
+    const collaborators = await octokit.paginate(
+      octokit.rest.repos.listCollaborators,
+      {
+        owner,
+        repo,
+        permission: 'push',
+        per_page: 100,
+      },
+    );
+
+    return [...new Set(collaborators.map((collaborator) => collaborator.login))];
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    throw new Error(`Failed to list trusted collaborators for ${owner}/${repo}: ${message}`);
   }
 };
