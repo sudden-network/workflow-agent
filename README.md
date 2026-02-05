@@ -58,7 +58,6 @@ Settings -> Actions -> Workflow permissions -> "Allow GitHub Actions to create a
 ## Security
 
 - The `GITHUB_TOKEN` is held by the action process and is not exposed directly to the agent.
-- The action only runs on private repositories and fails on public/unknown visibility.
 - The action refuses to run unless the triggering `github.actor` has write access to the repo.
 - GitHub side effects are constrained by the workflow `permissions` you grant to `GITHUB_TOKEN`.
 - By default, `GITHUB_TOKEN` is scoped to the repository running the workflow: it cannot write to other repositories unless you supply a broader token with cross-repo access.
