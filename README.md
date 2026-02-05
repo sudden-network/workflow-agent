@@ -67,3 +67,7 @@ Settings -> Actions -> Workflow permissions -> "Allow GitHub Actions to create a
 - Keep humans in the loop for decisions that affect code, security, or policy.
 
 This action uses generative AI to produce responses and automation. It runs with the workflow’s permissions; review prompts, triggers, and repo access before enabling it, and keep permissions minimal.
+
+## License
+
+This project is licensed under the MIT License — see the [LICENSE](LICENSE) file for details.
