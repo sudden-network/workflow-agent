@@ -1,7 +1,7 @@
 import { buildConfig, parseModelInput } from './codex';
 
 describe('buildConfig', () => {
-  test('renders multiple MCP servers', () => {
+  it('renders multiple MCP servers', () => {
     const config = buildConfig([
       { name: 'github', url: 'http://localhost:1234/mcp' },
       { name: 'jira', url: 'https://jira.example.com/mcp' },
@@ -20,29 +20,29 @@ describe('buildConfig', () => {
 });
 
 describe('parseModelInput', () => {
-  test('returns empty config for undefined', () => {
+  it('returns empty config for undefined', () => {
     expect(parseModelInput(undefined)).toEqual({});
   });
 
-  test('parses model only', () => {
+  it('parses model only', () => {
     expect(parseModelInput('gpt-5.2-codex')).toEqual({ model: 'gpt-5.2-codex', reasoningEffort: undefined });
   });
 
-  test('parses model and reasoning effort', () => {
+  it('parses model and reasoning effort', () => {
     expect(parseModelInput('gpt-5.2-codex/xhigh')).toEqual({
       model: 'gpt-5.2-codex',
       reasoningEffort: 'xhigh',
     });
   });
 
-  test('trims whitespace', () => {
+  it('trims whitespace', () => {
     expect(parseModelInput(' gpt-5.2-codex / high ')).toEqual({
       model: 'gpt-5.2-codex',
       reasoningEffort: 'high',
     });
   });
 
-  test('handles empty model or effort', () => {
+  it('handles empty model or effort', () => {
     expect(parseModelInput('/high')).toEqual({ model: undefined, reasoningEffort: 'high' });
     expect(parseModelInput('gpt-5.2-codex/')).toEqual({ model: 'gpt-5.2-codex', reasoningEffort: undefined });
   });

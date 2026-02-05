@@ -15,7 +15,7 @@ describe('getAgent', () => {
     setAgentInput(originalAgentInput);
   });
 
-  test('defaults to codex for empty value', () => {
+  it('defaults to codex for empty value', () => {
     setAgentInput(undefined);
     return expect(getAgent()).resolves.toMatchObject({
       bootstrap: expect.any(Function),
@@ -24,14 +24,14 @@ describe('getAgent', () => {
     });
   });
 
-  test('selects codex case-insensitively', async () => {
+  it('selects codex case-insensitively', async () => {
     setAgentInput('Codex');
     const agent = await getAgent();
     const codex = await import('./codex');
     expect(agent).toBe(codex);
   });
 
-  test('rejects unknown agents', async () => {
+  it('rejects unknown agents', async () => {
     setAgentInput('unknown');
     await expect(getAgent()).rejects.toThrow('Unsupported agent "unknown".');
   });
