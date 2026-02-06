@@ -4,6 +4,7 @@ on:
   pull_request:
     branches:
       - main
+    types: [opened, reopened, edited, synchronize, ready_for_review]
 
 permissions:
   contents: read
@@ -14,6 +15,7 @@ concurrency:
 
 jobs:
   validate-build:
+    if: ${{ !github.event.pull_request.draft && github.event.pull_request.head.repo.full_name == github.repository }}
     runs-on: ubuntu-latest
     steps:
       - name: Checkout

@@ -4,7 +4,7 @@ on:
   pull_request:
     branches:
       - main
-    types: [opened, reopened, synchronize, ready_for_review]
+    types: [opened, reopened, edited, synchronize, ready_for_review]
 
 permissions:
   contents: read
@@ -18,7 +18,7 @@ concurrency:
 
 jobs:
   version-bump:
-    if: ${{ !github.event.pull_request.draft && github.event.pull_request.head.ref == 'develop' && github.event.pull_request.head.repo.full_name == github.repository }}
+    if: ${{ !github.event.pull_request.draft && github.event.pull_request.head.repo.full_name == github.repository }}
     runs-on: ubuntu-latest
     steps:
       - name: Version bump via workflow-agent
