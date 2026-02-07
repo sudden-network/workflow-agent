@@ -97,9 +97,13 @@ const startServer = async (): Promise<{ url: string; stop: () => Promise<void> }
         return;
       }
 
-      const transport = new StreamableHTTPServerTransport({
+      let transport: StreamableHTTPServerTransport;
+
+      transport = new StreamableHTTPServerTransport({
         sessionIdGenerator: () => randomUUID(),
-        onsessioninitialized: (newSessionId) => transports.set(newSessionId, transport),
+        onsessioninitialized: (newSessionId: string): void => {
+          transports.set(newSessionId, transport);
+        },
       });
 
       transport.onclose = () => {

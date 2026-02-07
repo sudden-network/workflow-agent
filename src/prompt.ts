@@ -12,7 +12,7 @@ export const buildPrompt = ({
 }: {
   resumed: boolean;
   trustedCollaborators: string[];
-  tokenActor;
+  tokenActor: string;
 }): string => {
   if (!GITHUB_EVENT_PATH) throw new Error('Missing `GITHUB_EVENT_PATH`.');
 
