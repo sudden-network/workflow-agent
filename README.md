@@ -69,6 +69,8 @@ Common permissions:
 If you want the agent to open PRs, also enable the repo setting:
 Settings -> Actions -> Workflow permissions -> "Allow GitHub Actions to create and approve pull requests."
 
+Note: GitHub blocks `GITHUB_TOKEN` from updating workflow files in `.github/workflows/`.
+
 ## Security
 
 - The `GITHUB_TOKEN` is held by the action process and is not exposed directly to the agent.

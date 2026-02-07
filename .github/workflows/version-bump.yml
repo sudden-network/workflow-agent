@@ -33,6 +33,7 @@ jobs:
             Review the PR changes and decide whether a version bump is needed:
             - Breaking changes -> major.
             - New backward compatible features -> minor.
+            - Changes that alter the agent's behavior or outputs -> minor.
             - Backward compatible bug fixes, security fixes, dependency updates -> patch.
             - Internal-only changes, no runtime changes -> none.
 
