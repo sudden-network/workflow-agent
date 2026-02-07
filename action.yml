@@ -9,7 +9,12 @@ description: Run programmable agents on any GitHub Workflow to enable automation
 inputs:
   agent_api_key:
     description: Agent API key
-    required: true
+    required: false
+    default: ""
+  agent_auth_file:
+    description: Agent auth file content (agent-specific)
+    required: false
+    default: ""
   github_token:
     description: GitHub token used by the action
     required: true

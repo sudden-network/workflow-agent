@@ -10,9 +10,14 @@ import { info } from '@actions/core';
 import { BootstrapOptions, BootstrapResult } from '../../agent';
 import type { McpServerConfig } from '../../mcp';
 
+type AuthStrategy =
+  | { kind: 'api_key'; apiKey: string }
+  | { kind: 'auth_file'; authFile: string };
+
 const CODEX_VERSION = '0.98.0';
 const CODEX_DIR = path.join(os.homedir(), '.codex');
 const CODEX_CONFIG_PATH = path.join(CODEX_DIR, 'config.toml');
+const CODEX_AUTH_PATH = path.join(CODEX_DIR, 'auth.json');
 const CODEX_SESSIONS_PATH = path.join(CODEX_DIR, 'sessions');
 
 const ensureDir = (dir: string) => fs.mkdirSync(dir, { recursive: true });
@@ -22,11 +27,13 @@ const shouldResume = (): boolean => {
   return Boolean(context.payload.issue || context.payload.pull_request);
 };
 
-export const buildConfig = (mcpServers: McpServerConfig[]) => mcpServers
-  .map(({ name, url }) => `[mcp_servers.${name}]\nurl = "${url}"`)
-  .join('\n\n');
+export const buildConfig = (mcpServers: McpServerConfig[]) => {
+  return mcpServers
+    .map(({ name, url }) => `[mcp_servers.${name}]\nurl = "${url}"`)
+    .join('\n\n');
+};
 
-const configureMcpServers = (mcpServers: McpServerConfig[]) => {
+const writeCodexConfig = (mcpServers: McpServerConfig[]) => {
   ensureDir(CODEX_DIR);
   fs.writeFileSync(CODEX_CONFIG_PATH, buildConfig(mcpServers));
 };
@@ -60,12 +67,27 @@ const install = async () => {
   await runCommand('npm', ['install', '-g', `@openai/codex@${CODEX_VERSION}`]);
 };
 
+export const resolveAuthStrategy = (): AuthStrategy => {
+  const apiKey = inputs.agentApiKey?.trim() || undefined;
+  const authFile = inputs.agentAuthFile?.trim() || undefined;
+
+  if (apiKey && authFile) throw new Error('Set only one: `agent_api_key` or `agent_auth_file`.');
+  if (authFile) return { kind: 'auth_file', authFile };
+  if (apiKey) return { kind: 'api_key', apiKey };
+
+  throw new Error('Missing auth: set `agent_api_key` or `agent_auth_file`.');
+};
+
 const login = async () => {
-  await runCommand(
-    'codex',
-    ['login', '--with-api-key'],
-    { input: Buffer.from(inputs.agentApiKey, 'utf8') },
-  );
+  const auth = resolveAuthStrategy();
+
+  if (auth.kind === 'auth_file') {
+    ensureDir(CODEX_DIR);
+    fs.writeFileSync(CODEX_AUTH_PATH, auth.authFile, { mode: 0o600 });
+    return;
+  }
+
+  await runCommand('codex', ['login', '--with-api-key'], { input: Buffer.from(auth.apiKey, 'utf8') });
 };
 
 export const parseModelInput = (value: string | undefined) => {
@@ -82,7 +104,7 @@ export const bootstrap = async ({ mcpServers }: BootstrapOptions): Promise<Boots
     restoreSession(),
     install(),
   ]);
-  configureMcpServers(mcpServers);
+  writeCodexConfig(mcpServers);
   await login();
 
   return { resumed };

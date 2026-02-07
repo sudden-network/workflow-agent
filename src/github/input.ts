@@ -1,8 +1,11 @@
 import { getInput } from '@actions/core';
 
 export const inputs = {
-  get agentApiKey(): string {
-    return getInput('agent_api_key', { required: true });
+  get agentApiKey(): string | undefined {
+    return getInput('agent_api_key') || undefined;
+  },
+  get agentAuthFile(): string | undefined {
+    return getInput('agent_auth_file') || undefined;
   },
   get githubToken(): string {
     return getInput('github_token', { required: true });

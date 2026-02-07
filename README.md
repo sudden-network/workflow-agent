@@ -27,7 +27,8 @@ This makes iterative work practical: the agent remembers what it already covered
 | Input | Required | Description |
 | --- | --- | --- |
 | `agent` | no | Agent to run (`codex` default). |
-| `agent_api_key` | yes | Agent API key. |
+| `agent_api_key` | no | Agent API key. Required unless `agent_auth_file` is set. |
+| `agent_auth_file` | no | Agent auth file content (agent-specific). |
 | `github_token` | yes | GitHub token used by the action. |
 | `model` | no | Agent model override (for Codex, append reasoning effort with /, e.g. `gpt-5.3-codex/xhigh`) |
 | `prompt` | no | Additional instructions for the agent. |
@@ -40,6 +41,17 @@ This makes iterative work practical: the agent remembers what it already covered
 
 - Use `prompt` for per-workflow instructions.
 - If you want repo-level instructions, add an [AGENTS.md](https://agents.md/) file and run this action after `actions/checkout` so the agent can read it.
+
+## Authentication
+
+Authentication is agent-specific, but this action exposes two generic ways to pass credentials:
+
+- `agent_api_key`: API key auth (recommended for CI).
+- `agent_auth_file`: inject an agent-specific auth file into the runner.
+
+Treat `agent_auth_file` like a password (it grants access to the underlying agent account).
+
+For the default agent (`codex`), `agent_auth_file` can be used to inject Codex's `auth.json` (from `~/.codex/auth.json`).
 
 ## Permissions
 
