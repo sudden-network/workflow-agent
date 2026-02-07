@@ -44,5 +44,6 @@ Use org-level settings for reuse across repos, or repo-level settings for a sing
 - uses: sudden-network/workflow-agent@v1
   with:
     github_token: ${{ steps.app_token.outputs.token }}
+    github_token_actor: ${{ steps.app_token.outputs.app-slug }}[bot]
     ...
 ```
